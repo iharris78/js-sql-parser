@@ -16,6 +16,14 @@
 [\w]+[\u4e00-\u9fa5]+[0-9a-zA-Z_\u4e00-\u9fa5]*                   return 'IDENTIFIER'
 [\u4e00-\u9fa5][0-9a-zA-Z_\u4e00-\u9fa5]*                         return 'IDENTIFIER'
 SELECT                                                            return 'SELECT'
+INSERT                                                            return 'INSERT'
+VALUES                                                            return 'VALUES'
+UPDATE                                                            return 'UPDATE'
+SET                                                               return 'SET'
+INTO                                                              return 'INTO'
+DELETE                                                            return 'DELETE'
+TRASH                                                             return 'TRASH'
+RECOVER                                                           return 'RECOVER'
 ALL                                                               return 'ALL'
 ANY                                                               return 'ANY'
 DISTINCT                                                          return 'DISTINCT'
@@ -71,6 +79,7 @@ FORCE                                                             return 'FORCE'
 INNER                                                             return 'INNER'
 CROSS                                                             return 'CROSS'
 ON                                                                return 'ON'
+DUPLICATE                                                         return 'DUPLICATE'
 USING                                                             return 'USING'
 LEFT                                                              return 'LEFT'
 RIGHT                                                             return 'RIGHT'
@@ -163,8 +172,22 @@ UNION                                                             return 'UNION'
 %% /* language grammar */
 
 main
-  : selectClause semicolonOpt EOF { return {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
-  | unionClause semicolonOpt EOF { return {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  : sql_clause_list EOF { return {statements: $1}}
+  ;
+
+sql_clause
+  : selectClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  | insertClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  | updateClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  | deleteClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  | trashClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  | recoverClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  | unionClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  ;
+
+sql_clause_list
+  : sql_clause { $$ = { type: 'SqlClause', value: [ $1 ] } }
+  | sql_clause_list sql_clause { $$ = $1; $1.value.push($2); }
   ;
 
 semicolonOpt
@@ -189,6 +212,100 @@ selectClauseParenthesized
 unionClauseNotParenthesized
   : selectClause UNION distinctOpt selectClause { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 } }
   | selectClause UNION distinctOpt unionClauseNotParenthesized { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 } }
+  ;
+
+deleteClause
+  : DELETE FROM IDENTIFIER where_opt
+  {
+    $$ = {
+      type: 'Delete',
+      table: $3,
+      where_opt: $4
+    }
+  }
+  ;
+
+  trashClause
+  : TRASH FROM IDENTIFIER where_opt
+  {
+    $$ = {
+      type: 'Trash',
+      table: $3,
+      where_opt: $4
+    }
+  }
+  ;
+
+  recoverClause
+  : RECOVER FROM IDENTIFIER where_opt
+  {
+    $$ = {
+      type: 'Recover',
+      table: $3,
+      where_opt: $4
+    }
+  }
+  ;
+
+updateClause
+  : UPDATE IDENTIFIER SET update_asgn_list where_opt
+  {
+    $$ = {
+      type: 'Update',
+      table: $2,
+      update_asgn_list: $4,
+      where_opt: $5
+    }
+  }
+  ;
+
+update_asgn_list
+  : update_asgn { $$ = { type: 'UpdateAssign', value: [ $1 ] } }
+  | update_asgn_list ',' update_asgn { $$ = $1; $1.value.push($3); }
+  ;
+
+update_asgn
+  : IDENTIFIER '=' simple_expr
+  {
+    $$ = {
+      column: $1,
+      expression: $3
+    }
+  }
+  ;
+
+insertClause
+  : INSERT opt_into IDENTIFIER opt_col_names VALUES insert_vals_list opt_ondupupdate
+  {
+    $$ = {
+      type: 'Insert',
+      opt_into: $2,
+      table: $3,
+      opt_col_names: $4,
+      values: $5,
+      insert_vals_list: $6,
+      opt_ondupupdate: $7
+    }
+  }
+  ;
+
+opt_ondupupdate
+  : ON DUPLICATE KEY UPDATE update_asgn_list { $$ = $5 }
+  | { $$ = null }
+  ;
+
+opt_into
+  : 'INTO' { $$ = true }
+  | { $$ = false }
+  ;
+
+opt_col_names
+  : '(' identifier_list ')' { $$ = { type: 'ColNames', value: $2 } }
+  ;
+
+insert_vals_list
+  : insert_vals_list ',' simple_expr { $1.value.push($3); }
+  | simple_expr { $$ = { type: 'simple_expr', value: [ $1 ] } }
   ;
 
 selectClause
