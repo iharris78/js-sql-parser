@@ -32,8 +32,16 @@ describe('insert grammar support', function () {
     testParser('delete from t where _id = "abcdef"; update t set a = 1, b = 2, c = 3 where _id = "abcdef";');
   });
 
-  it('test3', function () {
+  it('test4', function () {
     testParser('trash from t where _id = "abcdef";');
+  });
+
+  it('test5', function () {
+    testParser('archive from t where _id = "abcdef";');
+  });
+
+  it('test6', function () {
+    testParser('unarchive from t where _id = "abcdef";');
   });
 
 });

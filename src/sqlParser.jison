@@ -24,6 +24,8 @@ INTO                                                              return 'INTO'
 DELETE                                                            return 'DELETE'
 TRASH                                                             return 'TRASH'
 RECOVER                                                           return 'RECOVER'
+ARCHIVE                                                           return 'ARCHIVE'
+UNARCHIVE                                                         return 'UNARCHIVE'
 ALL                                                               return 'ALL'
 ANY                                                               return 'ANY'
 DISTINCT                                                          return 'DISTINCT'
@@ -185,6 +187,8 @@ sql_clause
   | deleteClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
   | trashClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
   | recoverClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  | archiveClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  | unarchiveClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
   | unionClause semicolonOpt { $$ = {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
   ;
 
@@ -244,6 +248,28 @@ deleteClause
   {
     $$ = {
       type: 'Recover',
+      table: $3,
+      where_opt: $4
+    }
+  }
+  ;
+
+  archiveClause
+  : ARCHIVE FROM IDENTIFIER where_opt
+  {
+    $$ = {
+      type: 'Archive',
+      table: $3,
+      where_opt: $4
+    }
+  }
+  ;
+
+  unarchiveClause
+  : UNARCHIVE FROM IDENTIFIER where_opt
+  {
+    $$ = {
+      type: 'Unarchive',
       table: $3,
       where_opt: $4
     }
