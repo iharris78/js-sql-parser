@@ -103,6 +103,7 @@ MODE                                                              return 'MODE'
 OJ                                                                return 'OJ'
 LIMIT                                                             return 'LIMIT'
 UNION                                                             return 'UNION'
+UNIONTAG                                                          return 'UNIONTAG'
 CREATE                                                            return 'CREATE'
 TRIGGER                                                           return 'TRIGGER'
 
@@ -689,6 +690,7 @@ join_condition
 table_reference
   : table_factor { $$ = $1 }
   | join_table { $$ = $1 }
+  | UNIONTAG identifier { $$ = {type: 'UnionTag', value: $2} }
   ;
 partition_names
   : identifier { $$ = [ $1 ] }
